@@ -29,13 +29,15 @@ hl.monitor({
     scale    = "auto",
 })
 
--- Arch
-hl.monitor({ output = "DP-1", mode = "3840x2160", position = "0x0", scale = 1, transform = 0 })
-hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "3840x0", scale = 1, transform = 3 })
+{% if host == 'arch' %}
+  hl.monitor({ output = "DP-1", mode = "3840x2160", position = "0x0", scale = 1, transform = 0 })
+  hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "3840x0", scale = 1, transform = 3 })
+{% endif %}
 
--- T15
---hl.monitor({ output = "eDP-1", mode = "1920x1080", position = "1920x0", scale = 1 })
---hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "0x0", scale = 1 })
+{% if host == 't15' %}
+  hl.monitor({ output = "eDP-1", mode = "1920x1080", position = "1920x0", scale = 1 })
+  hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "0x0", scale = 1 })
+{% endif %}
 
 
 hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true })
