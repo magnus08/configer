@@ -68,7 +68,8 @@ local browser        = "google-chrome-stable"
 hl.on("hyprland.start", function () 
   hl.exec_cmd(terminal)
   hl.exec_cmd("nm-applet")
-  hl.exec_cmd("waybar & hyprpaper & google-chrome-stable")
+  hl.exec_cmd("/home/magnus/.local/bin/astal-bar")
+  hl.exec_cmd("hyprpaper & google-chrome-stable")
   hl.exec_cmd("hypridle")  
   hl.exec_cmd("wl-clip-persist --clipboard regular") -- Copy paste
   hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -315,9 +316,7 @@ hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
 
--- I should add this to hyprlauncher in some way.
--- bind = SUPER, V, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy
-
+-- Clipboard support in launcher
 hl.bind(mainMod .. " + SHIFT + V", hl.dsp.exec_cmd("cliphist list | hyprlauncher --dmenu | cliphist decode | wl-copy"))
 
 -- Reload
