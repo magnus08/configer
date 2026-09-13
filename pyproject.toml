@@ -1,0 +1,9 @@
+[project]
+name = "configer"
+version = "0.1.0"
+description = "Deploy Jinja2-templated dotfiles from templates/ into a home directory."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1",
+]
