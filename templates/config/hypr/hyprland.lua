@@ -29,18 +29,26 @@ hl.monitor({
     scale    = "auto",
 })
 
+-- Arch
 hl.monitor({ output = "DP-1", mode = "3840x2160", position = "0x0", scale = 1, transform = 0 })
 hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "3840x0", scale = 1, transform = 3 })
 
+-- T15
+--hl.monitor({ output = "eDP-1", mode = "1920x1080", position = "1920x0", scale = 1 })
+--hl.monitor({ output = "HDMI-A-1", mode = "1920x1080", position = "0x0", scale = 1 })
+
+
 hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true })
 hl.workspace_rule({ workspace = "2", monitor = "HDMI-A-1", default = true })
+
+
 
 ---------------------
 ---- MY PROGRAMS ----
 ---------------------
 
 -- Set programs that you use
-local terminal    = "kitty"
+local terminal    = "foot"
 local fileManager = "dolphin"
 local menu        = "hyprlauncher"
 local browser        = "google-chrome-stable"
@@ -59,6 +67,10 @@ hl.on("hyprland.start", function ()
   hl.exec_cmd(terminal)
   hl.exec_cmd("nm-applet")
   hl.exec_cmd("waybar & hyprpaper & google-chrome-stable")
+  hl.exec_cmd("hypridle")  
+  hl.exec_cmd("wl-clip-persist --clipboard regular") -- Copy paste
+  hl.exec_cmd("wl-paste --type text --watch cliphist store")
+  hl.exec_cmd("wl-paste --type image --watch cliphist store")
 end)
 
 
@@ -70,6 +82,8 @@ end)
 
 hl.env("XCURSOR_SIZE", "24")
 hl.env("HYPRCURSOR_SIZE", "24")
+
+-- Arch
 hl.env("LIBVA_DRIVER_NAME", "nvidia")
 hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
 hl.env("NVD_BACKEND", "direct")
@@ -270,22 +284,37 @@ hl.device({
 local mainMod = "SUPER" -- Sets "Windows" key as main modifier
 
 -- Example binds, see https://wiki.hypr.land/Configuring/Basics/Binds/ for more
-hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal))
-local closeWindowBind = hl.bind(mainMod .. " + C", hl.dsp.window.close())
--- closeWindowBind:set_enabled(false)
+hl.bind(mainMod .. " + Q", hl.dsp.window.close())
+hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.window.kill())
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(terminal))
 hl.bind(mainMod .. " + M", hl.dsp.exec_cmd("command -v hyprshutdown >/dev/null 2>&1 && hyprshutdown || hyprctl dispatch 'hl.dsp.exit()'"))
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager))
 hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser))
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu))
+hl.bind(mainMod .. " + D", hl.dsp.exec_cmd(menu))
 hl.bind(mainMod .. " + P", hl.dsp.window.pseudo())
 hl.bind(mainMod .. " + J", hl.dsp.layout("togglesplit"))    -- dwindle only
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd("hyprlock")) 
+
+-- Groups
+hl.bind(mainMod .. " + W", hl.dsp.group.toggle()) 
+hl.bind("ALT + Tab", hl.dsp.group.next())
+hl.bind("ALT + SHIFT + Tab", hl.dsp.group.prev())
+-- Move a window out of a group
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.window.move({ out_of_group = "true" }))
+
+
+--hl.bind(mainMod, "Tab", "changegroupactive", "f")
+--hl.bind(mainMod .. " + SHIFT", "Tab", "changegroupactive", "b")
 
 -- Move focus with mainMod + arrow keys
 hl.bind(mainMod .. " + left",  hl.dsp.focus({ direction = "left" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 hl.bind(mainMod .. " + up",    hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + down",  hl.dsp.focus({ direction = "down" }))
+
+-- I should add this to hyprlauncher in some way.
+-- bind = SUPER, V, exec, cliphist list | rofi -dmenu | cliphist decode | wl-copy
 
 -- Reload
 
@@ -387,3 +416,51 @@ hl.window_rule({
     move  = "20 monitor_h-120",
     float = true,
 })
+-- hl.config({
+--   ecosystem = {
+--     enforce_permissions = true,
+--   },
+-- })
+
+hl.config({
+    group = {
+    -- Gradients for the border around the entire grouped window container
+	col = {
+	    border_inactive = "rgba(595959aa)",
+            -- border_active = rgba(33ccffee) rgba(00ff99ee) 45deg
+            -- border_locked_active = rgba(ff5555ee) rgba(ff79c6ee) 45deg
+            border_locked_inactive = "rgba(595959aa)",
+	},
+
+    groupbar = {
+        -- General layout
+        --enabled = true,
+        font_family = "JetBrainsMono Nerd Font",
+        font_size = 12,
+        gradients = true,
+        height = 19,
+        stacked = false,          -- Set to true for a vertical stack instead of horizontal tabs
+        render_titles = true,
+        scrolling = true,         -- Scroll with mouse wheel over tabs to switch windows
+
+        -- Active tab colors (Focused window)
+	col = {
+          active = "rgba(0000f0c0)",
+          inactive = "rgba(000090c0)",
+	},
+
+
+        -- Inactive tab colors (Background windows in the group)
+        --col.inactive = rgba(222222aa),
+        --text_color_inactive = rgba(aaaaaaff),
+
+        -- Locked group colors (Prevents adding new windows to the group)
+        --col.locked_active = rgba(ff5555ee),
+        --col.locked_inactive = rgba(222222aa),
+        --text_color_locked_active = rgba(ffffffff),
+        --text_color_locked_inactive = rgba(aaaaaaff),
+    },
+    },
+})
+
+
