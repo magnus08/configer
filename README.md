@@ -13,9 +13,11 @@ tag-aware [Jinja2](https://jinja2.palletsprojects.com/) templating.
 | `templates/root/.profile`   | `~/.profile`            |
 
 Files under `templates/root/` get a `.` prefix added unless they already
-have one. Every regular file under `templates/` is deployed — if you don't
-want e.g. `templates/config/sway/config.old` installed, remove it from the
-repo. Files that exist in your home but not in `templates/` are left alone.
+have one. Emacs backup files with names ending in `~` are ignored when
+deploying and showing diffs. Every other regular file under `templates/`
+is deployed — if you don't want e.g. `templates/config/sway/config.old`
+installed, remove it from the repo. Files that exist in your home but not
+in `templates/` are left alone.
 
 ## Requirements
 

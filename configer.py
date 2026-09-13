@@ -8,8 +8,9 @@ Layout
                                                       unless the file already
                                                       starts with one)
 
-Every regular file under templates/ is rendered through Jinja2 and then
-either written to its target (default) or diffed against it (--diff).
+Every regular file under templates/, except backup files ending in ~, is
+rendered through Jinja2 and then either written to its target (default) or
+diffed against it (--diff).
 The template context is built from the machine hostname and the repo's
 .env file (host, tags and arbitrary variables).
 
@@ -128,19 +129,19 @@ def detect_host() -> str:
 
 
 def map_targets(templates_dir: Path) -> list[tuple[Path, Path]]:
-    """Map every template file to its home-relative destination path."""
+    """Map template files to home-relative destinations, skipping ~ backups."""
     targets: list[tuple[Path, Path]] = []
 
     config_dir = templates_dir / "config"
     if config_dir.is_dir():
         for src in sorted(config_dir.rglob("*")):
-            if src.is_file():
+            if src.is_file() and not src.name.endswith("~"):
                 targets.append((src, Path(".config") / src.relative_to(config_dir)))
 
     root_dir = templates_dir / "root"
     if root_dir.is_dir():
         for src in sorted(root_dir.rglob("*")):
-            if src.is_file():
+            if src.is_file() and not src.name.endswith("~"):
                 rel = src.relative_to(root_dir)
                 parts = list(rel.parts)
                 parts[0] = parts[0] if parts[0].startswith(".") else "." + parts[0]
