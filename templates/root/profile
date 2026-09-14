@@ -21,6 +21,12 @@ if [ -d "$HOME/bin" ] ; then
     PATH="$HOME/bin:$PATH"
 fi
 
+
+# set PATH so it includes user's local bin if it exists
+if [ -d "$HOME/.local/bin" ] ; then
+    PATH="$HOME/.local/bin:$PATH"
+fi
+
 # Haskell
 if [ -d "$HOME/.cabal/bin" ] ; then
     PATH="$HOME/.cabal/bin:$PATH"
@@ -33,10 +39,17 @@ fi
 LEARNIFIER_HOME="$HOME/learnifier"
 export LEARNIFIER_HOME
 
+JBOSS_HOME="$HOME/java/wildfly"
+export JBOSS_HOME
+JBOSS_ADMIN="admin"
+export JBOSS_ADMIN
+JBOSS_PASSWD="admin"
+export JBOSS_PASSWD
+
 PATH="$PATH:$LEARNIFIER_HOME/bin"
 
-#PATH="$HOME/java/netbeans/bin:$PATH"
-
+# set PATH so it includes user's private bin if it exists
+if [ -d "$HOME/java/idea-IU/bin" ] ; then
 PATH="$HOME/java/idea-IU/bin:$PATH"
 
 if [ "$DESKTOP_SESSION" = "i3" ]; then
