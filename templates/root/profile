@@ -50,7 +50,8 @@ PATH="$PATH:$LEARNIFIER_HOME/bin"
 
 # set PATH so it includes user's private bin if it exists
 if [ -d "$HOME/java/idea-IU/bin" ] ; then
-PATH="$HOME/java/idea-IU/bin:$PATH"
+  PATH="$HOME/java/idea-IU/bin:$PATH"
+fi
 
 if [ "$DESKTOP_SESSION" = "i3" ]; then
     export $(gnome-keyring-daemon -s)
