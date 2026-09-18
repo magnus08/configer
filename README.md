@@ -39,6 +39,37 @@ uv run python configer.py
 First run creates a `.venv` (ignored by git) and a `uv.lock` (commit it).
 The `.env` file is ignored by git, so it can differ per machine.
 
+## Hyprland wallpaper
+
+`templates/config/hypr/hyprpaper.conf` uses Hyprpaper's 0.8+ `wallpaper { ... }`
+syntax (tested with 0.8.4). The old `preload = ...` and `wallpaper = ...`
+syntax is no longer supported. See the
+[Hyprpaper configuration reference](https://wiki.hypr.land/Hypr-Ecosystem/hyprpaper/).
+An empty `monitor` selects the image for all outputs without a specific wallpaper.
+
+To use a different image on a host, set its path in that host's `.env`:
+
+```sh
+WALLPAPER_PATH=/home/magnus/Pictures/wallpaper.jpg
+```
+
+The image must already exist on each host; configer deploys the configuration,
+not the image. Without an override, the template uses
+`/home/magnus/testdata/images/VNLNEWOR003_front-scaled.jpg`.
+
+After deploying with `uv run python configer.py`, log out and back in, or
+restart Hyprpaper from a terminal in the running Hyprland session:
+
+```sh
+pkill -x hyprpaper
+hyprpaper > /tmp/hyprpaper.log 2>&1 &
+hyprctl hyprpaper listactive
+```
+
+Hyprland starts Hyprpaper on `hyprland.start`; reloading Hyprland does not
+rerun that startup hook. Its built-in wallpaper is disabled separately with
+`misc.disable_hyprland_logo`.
+
 ## .env
 
 `.env` lives in the repo root and controls the template context:

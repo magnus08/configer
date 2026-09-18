@@ -75,7 +75,8 @@ hl.on("hyprland.start", function ()
   hl.exec_cmd(terminal)
   hl.exec_cmd("nm-applet")
   hl.exec_cmd("/home/magnus/.local/bin/astal-bar")
-  hl.exec_cmd("hyprpaper & google-chrome-stable")
+  hl.exec_cmd("hyprpaper")
+  hl.exec_cmd(browser)
   hl.exec_cmd("hypridle")  
   hl.exec_cmd("wl-clip-persist --clipboard regular") -- Copy paste
   hl.exec_cmd("wl-paste --type text --watch cliphist store")
@@ -244,8 +245,7 @@ hl.config({
 
 hl.config({
     misc = {
-        force_default_wallpaper = -1,    -- Set to 0 or 1 to disable the anime mascot wallpapers
-        disable_hyprland_logo   = false, -- If true disables the random hyprland logo / anime girl background. :(
+        disable_hyprland_logo = true, -- Leave the wallpaper to hyprpaper.
     },
 })
 
