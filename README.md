@@ -11,6 +11,7 @@ tag-aware [Jinja2](https://jinja2.palletsprojects.com/) templating.
 | `templates/config/foo/bar`  | `~/.config/foo/bar`     |
 | `templates/root/tmux.conf`  | `~/.tmux.conf`          |
 | `templates/root/.profile`   | `~/.profile`            |
+| `templates/root/local/share/applications/*.desktop` | `~/.local/share/applications/*.desktop` |
 
 Files under `templates/root/` get a `.` prefix added unless they already
 have one. Emacs backup files with names ending in `~` are ignored when
@@ -38,6 +39,30 @@ uv run python configer.py
 
 First run creates a `.venv` (ignored by git) and a `uv.lock` (commit it).
 The `.env` file is ignored by git, so it can differ per machine.
+
+## App launcher entries
+
+Custom desktop entries live in `templates/root/local/share/applications/`.
+They deploy to `~/.local/share/applications/` using the normal commands above.
+Keep the original desktop filename when overriding an existing entry so that
+launchers use the local entry instead of showing a duplicate.
+
+- `org.pulseaudio.pavucontrol.desktop` is named **Sound and Volume Control
+  (pavucontrol)** so all three terms are searchable. Hyprlauncher 0.1.6 searches
+  only `Name`, ignoring `Exec` and `Keywords`; other launchers can also use the
+  included keywords.
+- `jetbrains-idea.desktop` uses the stable `/home/magnus/java/idea-IU` symlink
+  for its executable and icon. Keep that symlink pointing to the current
+  IntelliJ installation. Set `IDEA_HOME=/absolute/path/to/idea` in `.env` on
+  machines with a different install location. Use an absolute path; desktop
+  entries do not expand `~` or `$HOME`.
+
+Hyprlauncher normally detects changes to existing application directories.
+If these entries do not appear after deploying (for example, if the directory
+was just created), run `pkill -x hyprlauncher` and open the launcher again.
+These templates register the apps with launchers; the apps must be installed
+separately. A local override also takes precedence over future package updates
+to that desktop entry, so keep its command and icon current.
 
 ## .env
 
