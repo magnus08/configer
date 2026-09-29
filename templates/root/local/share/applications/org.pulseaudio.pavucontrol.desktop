@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Sound and Volume Control (pavucontrol)
+GenericName=Volume Control
+Comment=Adjust audio devices, playback, recording, and volume
+Exec=pavucontrol
+TryExec=pavucontrol
+Icon=org.pulseaudio.pavucontrol
+Terminal=false
+StartupNotify=true
+Categories=AudioVideo;Audio;Mixer;GTK;
+Keywords=pavucontrol;Sound;Volume;Audio;PulseAudio;Microphone;Speakers;Headphones;Mixer;

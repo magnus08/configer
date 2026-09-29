@@ -1,0 +1,14 @@
+{% set idea_dir = idea_home | default('/home/magnus/java/idea-IU') %}
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=IntelliJ IDEA Ultimate Edition
+GenericName=Java IDE
+Comment=Develop Java and Kotlin applications
+Exec="{{ idea_dir }}/bin/idea" %f
+TryExec={{ idea_dir }}/bin/idea
+Icon={{ idea_dir }}/bin/idea.svg
+Terminal=false
+StartupWMClass=jetbrains-idea
+Categories=Development;IDE;
+Keywords=IntelliJ;IDEA;JetBrains;Java;Kotlin;IDE;

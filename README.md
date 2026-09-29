@@ -11,6 +11,7 @@ tag-aware [Jinja2](https://jinja2.palletsprojects.com/) templating.
 | `templates/config/foo/bar`  | `~/.config/foo/bar`     |
 | `templates/root/tmux.conf`  | `~/.tmux.conf`          |
 | `templates/root/.profile`   | `~/.profile`            |
+| `templates/root/local/share/applications/*.desktop` | `~/.local/share/applications/*.desktop` |
 
 Files under `templates/root/` get a `.` prefix added unless they already
 have one. Emacs backup files with names ending in `~` are ignored when
