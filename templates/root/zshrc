@@ -129,3 +129,5 @@ export PATH='/home/magnus/.hunk/bin':"$PATH"
 
 #. "$HOME/.local/bin/env"
 eval "$(fnm env --use-on-cd)"
+
+export OLLAMA_MODELS="/data/ai_models/ollama"
