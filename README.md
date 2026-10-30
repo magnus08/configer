@@ -40,6 +40,64 @@ uv run python configer.py
 First run creates a `.venv` (ignored by git) and a `uv.lock` (commit it).
 The `.env` file is ignored by git, so it can differ per machine.
 
+## tmux and the desktop clipboard
+
+The tmux template uses the terminal's OSC 52 clipboard support. Foot supports
+this by default and writes copied text to the regular Wayland clipboard, which
+the Hyprland `cliphist` watchers already monitor. Avoid adding an `xsel` or
+`wl-copy` copy command alongside `set-clipboard external`; the two clipboard
+writers can conflict. See [tmux's clipboard guide](https://github.com/tmux/tmux/wiki/Clipboard).
+
+- **Copy:** enter copy mode with `Ctrl+Q`, then `q`, select text and press `y`.
+  In the default Emacs mode, start the selection with `Ctrl+Space`, then move
+  with the arrow keys. `y` also works in vi copy mode. Mouse dragging copies
+  when you release the button.
+- **Paste from another app:** use Foot's `Ctrl+Shift+V`. This also works inside
+  tmux, including when tmux is running over SSH. The old `Ctrl+Q Ctrl+Y` X11
+  paste binding is removed.
+- **Paste tmux's last copy:** press `Ctrl+Q Ctrl+Q`. This uses tmux's internal
+  buffer, which does not update when another app changes the desktop clipboard.
+- **Clipboard history:** `Super+Shift+V` opens the Hyprland history picker;
+  choose an entry, then use `Ctrl+Shift+V` to paste it in Foot.
+
+After deploying, reload the config from inside tmux:
+
+```sh
+tmux source-file ~/.tmux.conf
+```
+
+To try just the tmux changes before deploying, run this from the repo root
+inside tmux (this template currently contains no Jinja expressions):
+
+```sh
+tmux source-file "$PWD/templates/root/tmux.conf"
+```
+
+## App launcher entries
+
+Custom desktop entries live in `templates/root/local/share/applications/`.
+They deploy to `~/.local/share/applications/` using the normal commands above.
+Keep the original desktop filename when overriding an existing entry so that
+launchers use the local entry instead of showing a duplicate.
+
+- `org.pulseaudio.pavucontrol.desktop` is named **Sound and Volume Control
+  (pavucontrol)** so all three terms are searchable. Hyprlauncher 0.1.6 searches
+  only `Name`, ignoring `Exec` and `Keywords`; other launchers can also use the
+  included keywords.
+- `jetbrains-idea.desktop` uses the stable `/home/magnus/java/idea-IU` symlink
+  for its executable and icon. Keep that symlink pointing to the current
+  IntelliJ installation. Set `IDEA_HOME=/absolute/path/to/idea` in `.env` on
+  machines with a different install location. Use an absolute path; desktop
+  entries do not expand `~` or `$HOME`.
+
+Hyprlauncher normally detects changes to existing application directories.
+If these entries do not appear after deploying (for example, if the directory
+was just created), run `pkill -x hyprlauncher` and open the launcher again.
+These templates register the apps with launchers; the apps must be installed
+separately. A local override also takes precedence over future package updates
+to that desktop entry, so keep its command and icon current.
+
+
 ## Hyprland wallpaper
 
 `templates/config/hypr/hyprpaper.conf` uses Hyprpaper's 0.8+ `wallpaper { ... }`
