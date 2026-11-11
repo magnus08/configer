@@ -56,7 +56,7 @@ plugins=(git svn-fast-info python)
 # User configuration
 GOHOME=$HOME/go
 
-export PATH="$HOME/bin:$HOME/utils:$HOME/java/apache-maven/bin:$HOME/java/idea-IU/bin:$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:$GOHOME/bin"
+export PATH="$HOME/bin:$HOME/utils:$HOME/projects/hurl:$HOME/java/idea-IU/bin:$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:$GOHOME/bin"
 # export MANPATH="/usr/local/man:$MANPATH"
 export PATH="$HOME/java/idea-IU/bin:$PATH"
 

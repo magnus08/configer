@@ -431,45 +431,155 @@ hl.window_rule({
 --   },
 -- })
 
+local defaultGroupColors = {
+    tab_active   = "rgba(0000f0c0)",
+    tab_inactive = "rgba(000090c0)",
+    border       = { colors = { "rgba(33ccffee)", "rgba(00ff99ee)" }, angle = 45 },
+}
+
+-- Per-application colors for groupbar tabs and window/group borders
+local appColors = {
+    {
+        name         = "chrome",
+        class_regex  = "^([Gg]oogle-chrome|com\\.google\\.Chrome).*",
+        lua_pattern  = "chrome",
+        tab_active   = "rgba(4285f4d9)",
+        tab_inactive = "rgba(1a3f7ad9)",
+        border       = { colors = { "rgba(4285f4ee)", "rgba(34a853ee)" }, angle = 45 },
+    },
+    {
+        name         = "intellij",
+        class_regex  = "^jetbrains-idea.*",
+        lua_pattern  = "jetbrains%-idea",
+        tab_active   = "rgba(fe315dd9)",
+        tab_inactive = "rgba(6e172bd9)",
+        border       = { colors = { "rgba(fe315dee)", "rgba(f97a12ee)" }, angle = 45 },
+    },
+    {
+        name         = "firefox",
+        class_regex  = "^(firefox|firefox-developer-edition|org\\.mozilla\\.firefox)$",
+        lua_pattern  = "firefox",
+        tab_active   = "rgba(ff7139d9)",
+        tab_inactive = "rgba(7a2e12d9)",
+        border       = { colors = { "rgba(ff7139ee)", "rgba(ffbd4fee)" }, angle = 45 },
+    },
+    {
+        name         = "librewolf",
+        class_regex  = "^(librewolf|io\\.gitlab\\.librewolf-community)$",
+        lua_pattern  = "librewolf",
+        tab_active   = "rgba(00acffd9)",
+        tab_inactive = "rgba(004a77d9)",
+        border       = { colors = { "rgba(00acffee)", "rgba(0060dfee)" }, angle = 45 },
+    },
+    {
+        name         = "zed",
+        class_regex  = "^(dev\\.zed\\.Zed|[Zz]ed)$",
+        lua_pattern  = "zed",
+        tab_active   = "rgba(087ea4d9)",
+        tab_inactive = "rgba(063c4fd9)",
+        border       = { colors = { "rgba(087ea4ee)", "rgba(38bdf8ee)" }, angle = 45 },
+    },
+    {
+        name         = "emacs",
+        class_regex  = "^[Ee]macs$",
+        lua_pattern  = "emacs",
+        tab_active   = "rgba(7f5ab6d9)",
+        tab_inactive = "rgba(3b2859d9)",
+        border       = { colors = { "rgba(7f5ab6ee)", "rgba(a855f7ee)" }, angle = 45 },
+    },
+}
+
+-- Apply per-app border colors to ungrouped windows as well
+for _, app in ipairs(appColors) do
+    hl.window_rule({
+        name         = "app-color-" .. app.name,
+        match        = { class = app.class_regex },
+        border_color = app.border,
+    })
+end
+
 hl.config({
     group = {
-    -- Gradients for the border around the entire grouped window container
-	col = {
-	    border_inactive = "rgba(595959aa)",
-            -- border_active = rgba(33ccffee) rgba(00ff99ee) 45deg
+        -- Gradients for the border around the entire grouped window container
+        col = {
+            border_active          = defaultGroupColors.border,
+            border_inactive        = "rgba(595959aa)",
             -- border_locked_active = rgba(ff5555ee) rgba(ff79c6ee) 45deg
             border_locked_inactive = "rgba(595959aa)",
-	},
+        },
 
-    groupbar = {
-        -- General layout
-        --enabled = true,
-        font_family = "JetBrainsMono Nerd Font",
-        font_size = 12,
-        gradients = true,
-        height = 19,
-        stacked = false,          -- Set to true for a vertical stack instead of horizontal tabs
-        render_titles = true,
-        scrolling = true,         -- Scroll with mouse wheel over tabs to switch windows
+        groupbar = {
+            -- General layout
+            --enabled = true,
+            font_family   = "JetBrainsMono Nerd Font",
+            font_size     = 12,
+            gradients     = true,
+            height        = 19,
+            stacked       = false, -- Set to true for a vertical stack instead of horizontal tabs
+            render_titles = true,
+            scrolling     = true,  -- Scroll with mouse wheel over tabs to switch windows
 
-        -- Active tab colors (Focused window)
-	col = {
-          active = "rgba(0000f0c0)",
-          inactive = "rgba(000090c0)",
-	},
+            -- Active tab colors (Focused window)
+            col = {
+                active   = defaultGroupColors.tab_active,
+                inactive = defaultGroupColors.tab_inactive,
+            },
 
+            -- Inactive tab colors (Background windows in the group)
+            --col.inactive = rgba(222222aa),
+            --text_color_inactive = rgba(aaaaaaff),
 
-        -- Inactive tab colors (Background windows in the group)
-        --col.inactive = rgba(222222aa),
-        --text_color_inactive = rgba(aaaaaaff),
-
-        -- Locked group colors (Prevents adding new windows to the group)
-        --col.locked_active = rgba(ff5555ee),
-        --col.locked_inactive = rgba(222222aa),
-        --text_color_locked_active = rgba(ffffffff),
-        --text_color_locked_inactive = rgba(aaaaaaff),
-    },
+            -- Locked group colors (Prevents adding new windows to the group)
+            --col.locked_active = rgba(ff5555ee),
+            --col.locked_inactive = rgba(222222aa),
+            --text_color_locked_active = rgba(ffffffff),
+            --text_color_locked_inactive = rgba(aaaaaaff),
+        },
     },
 })
+
+-- Dynamically update groupbar and group border colors when focusing a window/tab
+local lastGroupTheme = "default"
+
+local function updateGroupColorsForWindow(win)
+    local theme = defaultGroupColors
+    local themeName = "default"
+
+    if win and win.class then
+        local cls = win.class:lower()
+        for _, app in ipairs(appColors) do
+            if cls:find(app.lua_pattern) then
+                theme = app
+                themeName = app.name
+                break
+            end
+        end
+    end
+
+    if themeName == lastGroupTheme then
+        return
+    end
+    lastGroupTheme = themeName
+
+    hl.config({
+        group = {
+            col = {
+                border_active = theme.border,
+            },
+            groupbar = {
+                col = {
+                    active   = theme.tab_active,
+                    inactive = theme.tab_inactive,
+                },
+            },
+        },
+    })
+    hl.exec_scheduled_prop_refresh_immediately()
+end
+
+hl.on("window.active", function(win)
+    updateGroupColorsForWindow(win)
+end)
+
 
 
