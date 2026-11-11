@@ -89,6 +89,11 @@ launchers use the local entry instead of showing a duplicate.
   IntelliJ installation. Set `IDEA_HOME=/absolute/path/to/idea` in `.env` on
   machines with a different install location. Use an absolute path; desktop
   entries do not expand `~` or `$HOME`.
+- `antigravity.desktop` launches `/home/magnus/.local/bin/antigravity` and
+  checks `/home/magnus/.local/share/Antigravity-x64/antigravity` via `TryExec`.
+  Override the install directory or binary path in `.env` with
+  `ANTIGRAVITY_HOME=/absolute/path/to/Antigravity-x64` or
+  `ANTIGRAVITY_BIN=/absolute/path/to/antigravity`.
 
 Hyprlauncher normally detects changes to existing application directories.
 If these entries do not appear after deploying (for example, if the directory

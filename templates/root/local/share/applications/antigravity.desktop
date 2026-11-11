@@ -1,0 +1,16 @@
+{% set antigravity_dir = antigravity_home | default('/home/magnus/.local/share/Antigravity-x64') %}
+{% set antigravity_exec = antigravity_bin | default((antigravity_home ~ '/antigravity') if antigravity_home is defined else '/home/magnus/.local/bin/antigravity') %}
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Antigravity
+GenericName=AI IDE
+Comment=Agentic AI coding assistant and IDE
+Exec="{{ antigravity_exec }}" %U
+TryExec={{ antigravity_bin | default(antigravity_dir ~ '/antigravity') }}
+Icon=antigravity
+Terminal=false
+StartupNotify=true
+StartupWMClass=antigravity
+Categories=Development;IDE;
+Keywords=Antigravity;Google;AI;Agent;IDE;Coding;
