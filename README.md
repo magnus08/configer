@@ -23,18 +23,24 @@ in `templates/` are left alone.
 ## Requirements
 
 - [uv](https://docs.astral.sh/uv/) (handles Python and the one dependency,
-  Jinja2; nothing is installed on the host OS)
+  Jinja2; nothing else is needed in secrets-free mode)
+- [sops](https://getsops.io/) and [age](https://age-encryption.org/) (optional;
+  only needed when deploying with `--secrets`)
 
 ## Usage
 
 Run from the repo root:
 
 ```sh
-# Show a diff of generated vs installed files (writes nothing):
+# Show a diff of generated vs installed files (writes nothing, secrets-free):
 uv run python configer.py --diff
 
-# Render and copy into your home directory:
+# Render and copy into your home directory (secrets-free, skips secret files):
 uv run python configer.py
+
+# Decrypt secrets via sops and include templates that use secrets:
+uv run python configer.py --secrets --diff
+uv run python configer.py --secrets
 ```
 
 First run creates a `.venv` (ignored by git) and a `uv.lock` (commit it).
@@ -198,16 +204,80 @@ Notes:
 - For structured files (e.g. the JSONC waybar config), keep each conditional
   block on whole lines so the rendered file stays valid.
 
+## Secrets (SOPS + age)
+
+By default `configer` runs in **secrets-free mode**: any template file that calls
+`secret('KEY')` without a fallback default is skipped cleanly instead of
+failing or writing empty placeholders. Pass `--secrets` (or `--secrets-file`)
+to decrypt `secrets.enc.yaml` (or `.yml`/`.json`/`.env`) in memory using
+`sops` and deploy those files too.
+
+### One-time setup
+
+1. Generate an `age` key (keep `~/.config/sops/age/keys.txt` outside git):
+
+   ```sh
+   mkdir -p ~/.config/sops/age
+   age-keygen -o ~/.config/sops/age/keys.txt
+   ```
+
+2. Create `.sops.yaml` in the repo root with the public key printed above:
+
+   ```yaml
+   creation_rules:
+     - path_regex: ^secrets\.enc\.
+       age: age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   ```
+
+   To authorize multiple machines, list comma-separated `age` public keys in
+   `age: key1,key2`.
+
+3. Create and edit `secrets.enc.yaml` (commit both `.sops.yaml` and
+   `secrets.enc.yaml`):
+
+   ```sh
+   sops secrets.enc.yaml
+   ```
+
+   Example decrypted contents:
+
+   ```yaml
+   openai_api_key: sk-...
+   github:
+     token: ghp_...
+   ```
+
+### Using secrets in templates
+
+- `{{ secret('openai_api_key') }}` — looks up the key (or dotted path like
+  `secret('github.token')`, with case-insensitive fallback). If not provided,
+  that template file is skipped.
+- `{{ secret('optional_key', 'fallback') }}` — returns `'fallback'` instead of
+  skipping when the key is missing.
+- `{% if has_secret('openai_api_key') %}...{% endif %}` — conditionally render a
+  block inside a shared file without skipping the whole file in secrets-free
+  mode.
+
+For shell environment variables, prefer placing secrets in a dedicated file
+(e.g. `templates/root/secrets.env` → `~/.secrets.env`) and sourcing it from
+`templates/root/zshrc` with `[ -f "$HOME/.secrets.env" ] && source "$HOME/.secrets.env"`
+so `~/.zshrc` still deploys normally in secrets-free mode.
+
+Any file into which `secret(...)` injects a value is written with `0600`
+permissions (or `0700` if the source template is executable).
+
 ## Options
 
-| flag            | meaning                                                     |
-|-----------------|-------------------------------------------------------------|
-| `--diff`        | show a unified diff of generated vs target, write nothing   |
-| `--host NAME`   | override the hostname for templating                        |
-| `--tag TAG`     | add a tag (repeatable), e.g. `--tag headless`               |
-| `--env-file P`  | path to the .env file (default: `<repo>/.env`)              |
-| `--templates P` | path to the templates directory (default: `<repo>/templates`) |
-| `--home P`      | target home directory (default: `$HOME`)                    |
+| flag             | meaning                                                     |
+|------------------|-------------------------------------------------------------|
+| `--diff`         | show a unified diff of generated vs target, write nothing   |
+| `--host NAME`    | override the hostname for templating                        |
+| `--tag TAG`      | add a tag (repeatable), e.g. `--tag headless`               |
+| `--env-file P`   | path to the .env file (default: `<repo>/.env`)              |
+| `--templates P`  | path to the templates directory (default: `<repo>/templates`) |
+| `--home P`       | target home directory (default: `$HOME`)                    |
+| `--secrets`      | decrypt secrets via `sops` and render secret-using files    |
+| `--secrets-file P` | path to SOPS secrets file (implies `--secrets`; default: `secrets.enc.{yaml,yml,json,env}`) |
 
 ## Testing without touching your real home
 

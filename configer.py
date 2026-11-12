@@ -14,20 +14,30 @@ diffed against it (--diff).
 The template context is built from the machine hostname and the repo's
 .env file (host, tags and arbitrary variables).
 
+By default configer runs in secrets-free mode and skips any template file that
+requests a secret via ``secret('KEY')``.  Pass ``--secrets`` (or
+``--secrets-file``) to decrypt secrets in memory with ``sops`` and deploy those
+files as well.
+
 Usage
 -----
-    uv run python configer.py --diff     # show diffs, write nothing
-    uv run python configer.py            # render and copy into $HOME
+    uv run python configer.py --diff             # show diffs, secrets-free
+    uv run python configer.py                    # deploy, skipping secret files
+    uv run python configer.py --secrets --diff   # decrypt secrets and show diffs
+    uv run python configer.py --secrets          # decrypt secrets and deploy all
 """
 
 from __future__ import annotations
 
 import argparse
 import difflib
+import json
 import os
 import re
 import socket
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +46,13 @@ from jinja2 import Environment, StrictUndefined
 REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_TEMPLATES_DIR = REPO_ROOT / "templates"
 DEFAULT_ENV_FILE = REPO_ROOT / ".env"
+DEFAULT_SECRETS_CANDIDATES = (
+    "secrets.enc.yaml",
+    "secrets.enc.yml",
+    "secrets.enc.json",
+    "secrets.enc.env",
+)
+_UNSET = object()
 
 _TRUE_VALUES = {"true", "yes", "on", "1"}
 _FALSE_VALUES = {"false", "no", "off", "0"}
@@ -167,8 +184,133 @@ def build_environment() -> Environment:
     )
 
 
-def render_template(env: Environment, src: Path, context: dict[str, Any]) -> str:
-    return env.from_string(src.read_text(encoding="utf-8")).render(**context)
+class MissingSecretError(Exception):
+    """Raised when a template requests a secret that was not provided."""
+
+    def __init__(self, key: str) -> None:
+        self.key = key
+        super().__init__(f"requires secret: {key}")
+
+
+def find_default_secrets_file(repo_root: Path = REPO_ROOT) -> Path:
+    """Return the first existing default secrets file, or secrets.enc.yaml."""
+    for name in DEFAULT_SECRETS_CANDIDATES:
+        candidate = repo_root / name
+        if candidate.is_file():
+            return candidate
+    return repo_root / DEFAULT_SECRETS_CANDIDATES[0]
+
+
+def load_secrets_sops(path: Path) -> dict[str, Any]:
+    """Decrypt a SOPS-encrypted file in memory via ``sops decrypt``."""
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"secrets file not found: {path} "
+            "(create it with `sops` or omit --secrets for secrets-free mode)"
+        )
+    try:
+        proc = subprocess.run(
+            ["sops", "decrypt", "--output-type", "json", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        raise RuntimeError(
+            "`sops` command not found in PATH; install sops or run without --secrets"
+        ) from exc
+
+    if proc.returncode != 0:
+        detail = proc.stderr.strip() or proc.stdout.strip() or f"exit code {proc.returncode}"
+        raise RuntimeError(f"failed to decrypt {path} with sops: {detail}")
+
+    try:
+        data = json.loads(proc.stdout) if proc.stdout.strip() else {}
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"sops returned invalid JSON for {path}: {exc}") from exc
+
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise RuntimeError(f"secrets file {path} must decrypt to a key/value mapping")
+    return data
+
+
+def _lookup_mapping(mapping: dict[str, Any], name: str) -> Any:
+    if name in mapping:
+        return mapping[name]
+    low = name.lower()
+    for k, v in mapping.items():
+        if isinstance(k, str) and k.lower() == low:
+            return v
+    return _UNSET
+
+
+def lookup_secret(secrets: dict[str, Any], key: str) -> Any:
+    """Look up a secret by flat key or dotted path (case-insensitive fallback).
+
+    ``None`` and empty strings are treated as unset.
+    """
+    if not key or not secrets:
+        return _UNSET
+    val = _lookup_mapping(secrets, key)
+    if val is _UNSET and "." in key:
+        cur: Any = secrets
+        for part in key.split("."):
+            if not isinstance(cur, dict):
+                cur = _UNSET
+                break
+            cur = _lookup_mapping(cur, part)
+            if cur is _UNSET:
+                break
+        val = cur
+    if val is None or val == "":
+        return _UNSET
+    return val
+
+
+def count_secrets(secrets: dict[str, Any]) -> int:
+    """Count configured leaf secret values (excluding null/empty entries)."""
+    total = 0
+    for val in secrets.values():
+        if isinstance(val, dict):
+            total += count_secrets(val)
+        elif val is not None and val != "":
+            total += 1
+    return total
+
+
+def render_template(
+    env: Environment,
+    src: Path,
+    context: dict[str, Any],
+    secrets: dict[str, Any] | None = None,
+) -> tuple[str, bool]:
+    """Render a template file and return ``(rendered_text, used_secret)``."""
+    secret_map = secrets or {}
+    used_secret = False
+
+    def secret(key: str, default: Any = _UNSET) -> Any:
+        nonlocal used_secret
+        val = lookup_secret(secret_map, key)
+        if val is _UNSET:
+            if default is not _UNSET:
+                return default
+            raise MissingSecretError(key)
+        if isinstance(val, dict):
+            raise ValueError(
+                f"secret {key!r} is a mapping; reference a leaf key like '{key}.<name>'"
+            )
+        used_secret = True
+        return val
+
+    def has_secret(key: str) -> bool:
+        val = lookup_secret(secret_map, key)
+        return val is not _UNSET and not isinstance(val, dict)
+
+    render_ctx = {**context, "secret": secret, "has_secret": has_secret}
+    rendered = env.from_string(src.read_text(encoding="utf-8")).render(**render_ctx)
+    return rendered, used_secret
 
 
 def _colorize(line: str) -> str:
@@ -224,10 +366,16 @@ def write_if_needed(dest: Path, content: str, mode: int) -> str:
             same = False
         if same:
             return "unchanged"
-    tmp = dest.with_name(f".{dest.name}.tmp{os.getpid()}")
-    tmp.write_text(content, encoding="utf-8")
-    os.chmod(tmp, mode)
-    os.replace(tmp, dest)
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{dest.name}.tmp", dir=dest.parent)
+    tmp = Path(tmp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        os.chmod(tmp, mode)
+        os.replace(tmp, dest)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
     return "updated" if exists else "new"
 
 
@@ -277,11 +425,28 @@ def main(argv: list[str] | None = None) -> int:
         default=str(Path.home()),
         help="target home directory (useful for dry-run style testing)",
     )
+    parser.add_argument(
+        "--secrets",
+        action="store_true",
+        help="decrypt secrets via sops and process templates that use secrets",
+    )
+    parser.add_argument(
+        "--secrets-file",
+        default=None,
+        help="path to the sops-encrypted secrets file (implies --secrets; "
+        f"default: {REPO_ROOT / DEFAULT_SECRETS_CANDIDATES[0]} or .yml/.json/.env)",
+    )
     args = parser.parse_args(argv)
 
     templates_dir = Path(args.templates).expanduser()
     env_path = Path(args.env_file).expanduser()
     home = Path(args.home).expanduser()
+    use_secrets = args.secrets or args.secrets_file is not None
+    secrets_path = (
+        Path(args.secrets_file).expanduser()
+        if args.secrets_file is not None
+        else find_default_secrets_file()
+    )
 
     env = load_env_file(env_path)
     for tag in args.tag:
@@ -294,6 +459,14 @@ def main(argv: list[str] | None = None) -> int:
     # host (--host > .env > detected) always wins.
     context: dict[str, Any] = {**env, "host": host}
 
+    secrets: dict[str, Any] = {}
+    if use_secrets:
+        try:
+            secrets = load_secrets_sops(secrets_path)
+        except (OSError, RuntimeError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
+
     targets = map_targets(templates_dir)
     if not targets:
         print(
@@ -302,20 +475,37 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    secrets_label = (
+        f"{secrets_path} ({count_secrets(secrets)} secret(s))"
+        if use_secrets
+        else "off (secrets-free)"
+    )
     print(
         f"host: {host}  tags: {', '.join(context['tags']) or '(none)'}  "
-        f"env: {env_path if env_path.is_file() else '(missing, defaults only)'}"
+        f"env: {env_path if env_path.is_file() else '(missing, defaults only)'}  "
+        f"secrets: {secrets_label}"
     )
 
     env_obj = build_environment()
     differing = 0
-    stats = {"new": 0, "updated": 0, "unchanged": 0}
+    stats = {"new": 0, "updated": 0, "unchanged": 0, "skipped": 0}
 
     for src, rel in targets:
         dest = home / rel
         try:
-            generated = render_template(env_obj, src, context)
+            generated, used_secret = render_template(env_obj, src, context, secrets)
+        except MissingSecretError as exc:
+            stats["skipped"] += 1
+            print(f"  [skipped  ] {fmt(dest, home)} ({exc})")
+            continue
+        except Exception as exc:  # jinja2 errors, invalid secret usage, ...
+            print(f"error: {src}: {exc}", file=sys.stderr)
+            return 1
+
+        try:
             mode = src.stat().st_mode & 0o777
+            if used_secret:
+                mode = (mode & 0o700) | 0o600
             if args.diff:
                 if show_diff(generated, dest):
                     differing += 1
@@ -323,17 +513,19 @@ def main(argv: list[str] | None = None) -> int:
                 status = write_if_needed(dest, generated, mode)
                 stats[status] += 1
                 print(f"  [{status:9}] {fmt(dest, home)}")
-        except Exception as exc:  # jinja2 errors, unwritable targets, ...
+        except Exception as exc:  # unwritable targets, ...
             print(f"error: {src}: {exc}", file=sys.stderr)
             return 1
 
+    skip_note = f", {stats['skipped']} skipped" if stats["skipped"] else ""
     if args.diff:
-        print(f"{differing} of {len(targets)} file(s) differ (nothing was written)")
+        checked = len(targets) - stats["skipped"]
+        print(f"{differing} of {checked} file(s) differ{skip_note} (nothing was written)")
     else:
         total = len(targets)
         print(
             f"{stats['new']} new, {stats['updated']} updated, "
-            f"{stats['unchanged']} unchanged ({total} total)"
+            f"{stats['unchanged']} unchanged{skip_note} ({total} total)"
         )
     return 0
 
