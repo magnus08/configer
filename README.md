@@ -285,3 +285,8 @@ permissions (or `0700` if the source template is executable).
 uv run python configer.py --diff --home /tmp/fakehome
 uv run python configer.py --home /tmp/fakehome
 ```
+
+
+---
+
+Outside the config: Window Titler plugin for firefox.
