@@ -46,6 +46,38 @@ uv run python configer.py --secrets
 First run creates a `.venv` (ignored by git) and a `uv.lock` (commit it).
 The `.env` file is ignored by git, so it can differ per machine.
 
+## Terminal window titles
+
+The templates use a `🖥` prefix to identify terminal windows in desktop tabs:
+
+- Foot's initial title is `🖥 Terminal`.
+- Oh My Zsh shows `🖥 user@host:~/path` at the prompt and prefixes its usual
+  running-command title, for example `🖥 mvn test`. The wrapper belongs after
+  `source $ZSH/oh-my-zsh.sh`, which defines the original `title` function.
+- tmux sets the outer title to `🖥 tmux session:index window`, for example
+  `🖥 tmux work:0 zsh`. Shells inside tmux leave their pane titles unchanged;
+  tmux supplies the outer prefix.
+
+Foot's `title` setting is only the initial title, so zsh and tmux also need to
+add the prefix. Oh My Zsh updates titles both at the prompt and before commands;
+changing only `ZSH_THEME_TERM_TITLE_IDLE` would lose the icon during commands.
+See [Oh My Zsh's title settings](https://github.com/ohmyzsh/ohmyzsh/wiki/Settings#automatic-title)
+and [tmux's title options](https://man.openbsd.org/tmux.1#set-titles).
+
+This preserves dynamic titles, but programs that set titles directly (including
+remote shells over SSH) can replace the prefix outside tmux. To enforce a fixed
+title instead, set `locked-title=yes` alongside `title=🖥 Terminal` in Foot's
+`[main]` section; paths, commands, and tmux sessions then cannot change it.
+
+After deploying, open a new Foot window for its initial title setting. Run
+`exec zsh` in existing shells and `tmux source-file ~/.tmux.conf` in an existing
+tmux session to load their changes. To try just the tmux template before
+deploying, run `tmux source-file "$PWD/templates/root/tmux.conf"` from the repo
+root inside tmux.
+
+The desktop tab bar's font renders this icon, independently of Foot's terminal
+font. If it appears as a missing glyph, check the desktop's font fallback.
+
 ## tmux and the desktop clipboard
 
 The tmux template uses the terminal's OSC 52 clipboard support. Foot supports

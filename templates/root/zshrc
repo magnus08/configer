@@ -62,6 +62,17 @@ export PATH="$HOME/java/idea-IU/bin:$PATH"
 
 source $ZSH/oh-my-zsh.sh
 
+# Prefix Oh My Zsh's idle and running-command titles. Keep pane titles plain
+# inside tmux: its set-titles-string adds the icon to the outer terminal title.
+functions[configer_omz_title]=$functions[title]
+function title {
+  if [[ -n $TMUX ]]; then
+    configer_omz_title "$@"
+  else
+    configer_omz_title "🖥 $1" "🖥 ${2-$1}"
+  fi
+}
+
 # You may need to manually set your language environment
 # export LANG=en_US.UTF-8
 
