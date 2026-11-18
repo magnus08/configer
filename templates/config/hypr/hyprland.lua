@@ -35,12 +35,12 @@ hl.monitor({
 {% endif %}
 
 {% if host == 't15' %}
-  -- Laptop left
-  hl.monitor({ output = "DP-3", mode = "2560x1440", position = "1920x0", scale = 1 })
   hl.monitor({ output = "eDP-1", mode = "1920x1080", position = "0x0", scale = 1 })
-  -- Laptop right
---  hl.monitor({ output = "DP-3", mode = "2560x1440", position = "0x0", scale = 1 })
---  hl.monitor({ output = "eDP-1", mode = "1920x1080", position = "2560x0", scale = 1 })
+  hl.monitor({ output = "desc:Dell Inc. DELL U2724DE HWQ4GF4", mode = "2560x1440", position = "auto-right", scale = 1 })
+
+  -- At the other desk, replace the placeholder after "desc:" with the external display's description.
+  -- hyprctl -j monitors | jq -r '.[] | [.name, .description] | @tsv'
+  hl.monitor({ output = "desc:OTHER DESK DISPLAY DESCRIPTION", mode = "2560x1440", position = "auto-left", scale = 1 })
 {% endif %}
 
 

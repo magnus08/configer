@@ -322,3 +322,5 @@ uv run python configer.py --home /tmp/fakehome
 ---
 
 Outside the config: Window Titler plugin for firefox.
+
+Alternative monitor layout: https://man.archlinux.org/man/kanshi.5.en
