@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=ChatGPT Safe
+Comment=ChatGPT with WireGuard access blocked
+Exec=/home/magnus/.local/bin/chatgpt-safe
+TryExec=/home/magnus/.local/bin/chatgpt-safe
+Icon=chatgpt
+Terminal=true
+Categories=Development;
